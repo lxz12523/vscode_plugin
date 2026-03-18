@@ -1,0 +1,46 @@
+{
+	"name": "vscode_plugin",
+	"displayName": "vscode_plugin",
+	"description": "My example for VS Code",
+	"version": "0.0.1",
+	"publisher": "vscode-samples",
+	"repository": "https://github.com/Microsoft/vscode-extension-samples/file-folder-event",
+	"engines": {
+		"vscode": "^1.74.0"
+	},
+	"categories": [
+		"Other"
+	],
+	"activationEvents": [],
+	"main": "./out/extension.js",
+	"contributes": {
+		"commands": [
+			{
+				"command": "vscode-plugin.helloWorld",
+				"title": "Hello World"
+			},
+			{
+				"command": "vscode-plugin.visibleRangeDemo",
+				"title": "Visible Range Demo: Start"
+			},
+			{
+				"command": "vscode-plugin.stopVisibleRangeDemo",
+				"title": "Visible Range Demo: Stop"
+			}
+		]
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run compile",
+		"compile": "tsc -p ./",
+		"lint": "eslint \"src/**/*.ts\"",
+		"watch": "tsc -watch -p ./"
+	},
+	"devDependencies": {
+		"@types/node": "^18",
+		"@types/vscode": "^1.73.0",
+		"@typescript-eslint/eslint-plugin": "^6.7.0",
+		"@typescript-eslint/parser": "^6.7.0",
+		"eslint": "^8.26.0",
+		"typescript": "^5.4.2"
+	}
+}
