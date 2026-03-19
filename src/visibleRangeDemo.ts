@@ -65,12 +65,15 @@ class VisibleRangeListener {
     private setupVisibleRangeChangeListener(): void {
         // 尝试使用 vscode.window.onDidChangeEditorVisibleRanges
         if ('onDidChangeEditorVisibleRanges' in vscode.window) {
-            const windowWithVisibleRangeEvent = vscode.window as typeof vscode.window & {
+            // 类型安全的类型断言
+            type WindowWithVisibleRangeEvent = typeof vscode.window & {
                 onDidChangeEditorVisibleRanges: (listener: (event: { textEditor: vscode.TextEditor }) => void) => vscode.Disposable;
             };
 
-            const disposable = windowWithVisibleRangeEvent.onDidChangeEditorVisibleRanges((event) => {
-                this.showCurrentVisibleRange(event.textEditor);
+            const disposable = (vscode.window as WindowWithVisibleRangeEvent).onDidChangeEditorVisibleRanges((event) => {
+                if (event && event.textEditor) {
+                    this.showCurrentVisibleRange(event.textEditor);
+                }
             });
             this.disposables.push(disposable);
         }
@@ -78,12 +81,15 @@ class VisibleRangeListener {
         else {
             const editor = vscode.window.activeTextEditor;
             if (editor && 'onDidChangeVisibleRanges' in editor) {
-                const editorWithVisibleRangeEvent = editor as vscode.TextEditor & {
+                // 类型安全的类型断言
+                type EditorWithVisibleRangeEvent = vscode.TextEditor & {
                     onDidChangeVisibleRanges: (listener: (event: { textEditor: vscode.TextEditor }) => void) => vscode.Disposable;
                 };
 
-                const disposable = editorWithVisibleRangeEvent.onDidChangeVisibleRanges((event) => {
-                    this.showCurrentVisibleRange(event.textEditor);
+                const disposable = (editor as EditorWithVisibleRangeEvent).onDidChangeVisibleRanges((event) => {
+                    if (event && event.textEditor) {
+                        this.showCurrentVisibleRange(event.textEditor);
+                    }
                 });
                 this.disposables.push(disposable);
             }
