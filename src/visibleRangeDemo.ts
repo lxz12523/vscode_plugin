@@ -8,8 +8,10 @@ import * as vscode from 'vscode';
 /**
  * 可见范围变化监听示例
  * 
- * 此文件演示了如何使用 vscode.TextEditor 的 visibleRanges 属性和 vscode.window.onDidChangeVisibleTextEditors 事件
- * 来监听编辑器视口的变化，并根据可见范围执行相应的操作。
+ * 此文件演示了如何使用 vscode.TextEditor 的 visibleRanges 属性和以下事件
+ * 来监听编辑器视口的变化，并根据可见范围执行相应的操作：
+ * 1. vscode.window.onDidChangeVisibleTextEditors - 监听可见编辑器集合的变化
+ * 2. editor.onDidChangeVisibleRanges - 监听单个编辑器内部可见范围的变化
  */
 
 export function activateVisibleRangeDemo(context: vscode.ExtensionContext) {
@@ -35,15 +37,30 @@ export function activateVisibleRangeDemo(context: vscode.ExtensionContext) {
             }
         });
 
+        // 监听编辑器可见范围变化事件
+        let visibleRangesDisposable: vscode.Disposable | undefined;
+        if ('onDidChangeVisibleRanges' in editor) {
+            visibleRangesDisposable = (editor as any).onDidChangeVisibleRanges((event: any) => {
+                // 当可见范围发生变化时，更新显示信息
+                showCurrentVisibleRange(event.textEditor);
+            });
+        }
+
         // 注册命令，用于停止监听
         const stopDisposable = vscode.commands.registerCommand('vscode-plugin.stopVisibleRangeDemo', () => {
             visibleTextEditorsDisposable.dispose();
+            if (visibleRangesDisposable) {
+                visibleRangesDisposable.dispose();
+            }
             stopDisposable.dispose();
             vscode.window.showInformationMessage('已停止可见范围监听');
         });
 
         // 将 disposable 添加到 context 中，以便在扩展禁用时自动释放
         context.subscriptions.push(visibleTextEditorsDisposable);
+        if (visibleRangesDisposable) {
+            context.subscriptions.push(visibleRangesDisposable);
+        }
         context.subscriptions.push(stopDisposable);
 
         vscode.window.showInformationMessage('已启动可见范围监听，请尝试滚动编辑器或调整窗口大小');
