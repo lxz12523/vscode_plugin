@@ -11,7 +11,7 @@ import * as vscode from 'vscode';
  * 此文件演示了如何使用 vscode.TextEditor 的 visibleRanges 属性和以下事件
  * 来监听编辑器视口的变化，并根据可见范围执行相应的操作：
  * 1. vscode.window.onDidChangeVisibleTextEditors - 监听可见编辑器集合的变化
- * 2. editor.onDidChangeVisibleRanges - 监听单个编辑器内部可见范围的变化
+ * 2. vscode.window.onDidChangeEditorVisibleRanges - 监听编辑器可见范围的变化
  */
 
 export function activateVisibleRangeDemo(context: vscode.ExtensionContext) {
@@ -39,8 +39,8 @@ export function activateVisibleRangeDemo(context: vscode.ExtensionContext) {
 
         // 监听编辑器可见范围变化事件
         let visibleRangesDisposable: vscode.Disposable | undefined;
-        if ('onDidChangeVisibleRanges' in editor) {
-            visibleRangesDisposable = (editor as any).onDidChangeVisibleRanges((event: any) => {
+        if ('onDidChangeEditorVisibleRanges' in vscode.window) {
+            visibleRangesDisposable = (vscode.window as any).onDidChangeEditorVisibleRanges((event: any) => {
                 // 当可见范围发生变化时，更新显示信息
                 showCurrentVisibleRange(event.textEditor);
             });
