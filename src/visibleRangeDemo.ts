@@ -14,10 +14,17 @@ import * as vscode from 'vscode';
  * 2. vscode.window.onDidChangeEditorVisibleRanges - 监听编辑器可见范围的变化
  */
 
-export function activateVisibleRangeDemo(context: vscode.ExtensionContext) {
-    // 注册命令，用于启动可见范围监听
-    const disposable = vscode.commands.registerCommand('vscode-plugin.visibleRangeDemo', () => {
-        // 获取当前活动编辑器
+/**
+ * 可见范围变化监听器类
+ */
+class VisibleRangeListener {
+    private disposables: vscode.Disposable[] = [];
+
+    /**
+     * 启动可见范围监听
+     * @param context 扩展上下文
+     */
+    start(context: vscode.ExtensionContext): void {
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
             vscode.window.showInformationMessage('请打开一个编辑器后再运行此命令');
@@ -25,92 +32,130 @@ export function activateVisibleRangeDemo(context: vscode.ExtensionContext) {
         }
 
         // 显示当前可见范围信息
-        showCurrentVisibleRange(editor);
+        this.showCurrentVisibleRange(editor);
 
         // 监听可见文本编辑器变化事件
         const visibleTextEditorsDisposable = vscode.window.onDidChangeVisibleTextEditors((editors) => {
-            // 当可见编辑器发生变化时，检查当前活动编辑器
             const activeEditor = vscode.window.activeTextEditor;
             if (activeEditor) {
-                // 显示当前可见范围信息
-                showCurrentVisibleRange(activeEditor);
+                this.showCurrentVisibleRange(activeEditor);
             }
         });
+        this.disposables.push(visibleTextEditorsDisposable);
 
         // 监听编辑器可见范围变化事件
-        let visibleRangesDisposable: vscode.Disposable | undefined;
-        if ('onDidChangeEditorVisibleRanges' in vscode.window) {
-            visibleRangesDisposable = (vscode.window as any).onDidChangeEditorVisibleRanges((event: any) => {
-                // 当可见范围发生变化时，更新显示信息
-                showCurrentVisibleRange(event.textEditor);
-            });
-        }
+        this.setupVisibleRangeChangeListener();
 
         // 注册命令，用于停止监听
         const stopDisposable = vscode.commands.registerCommand('vscode-plugin.stopVisibleRangeDemo', () => {
-            visibleTextEditorsDisposable.dispose();
-            if (visibleRangesDisposable) {
-                visibleRangesDisposable.dispose();
-            }
-            stopDisposable.dispose();
+            this.dispose();
             vscode.window.showInformationMessage('已停止可见范围监听');
         });
+        this.disposables.push(stopDisposable);
 
-        // 将 disposable 添加到 context 中，以便在扩展禁用时自动释放
-        context.subscriptions.push(visibleTextEditorsDisposable);
-        if (visibleRangesDisposable) {
-            context.subscriptions.push(visibleRangesDisposable);
-        }
-        context.subscriptions.push(stopDisposable);
+        // 将所有 disposable 添加到 context 中
+        context.subscriptions.push(...this.disposables);
 
         vscode.window.showInformationMessage('已启动可见范围监听，请尝试滚动编辑器或调整窗口大小');
+    }
+
+    /**
+     * 设置可见范围变化监听器
+     */
+    private setupVisibleRangeChangeListener(): void {
+        // 尝试使用 vscode.window.onDidChangeEditorVisibleRanges
+        if ('onDidChangeEditorVisibleRanges' in vscode.window) {
+            const windowWithVisibleRangeEvent = vscode.window as typeof vscode.window & {
+                onDidChangeEditorVisibleRanges: (listener: (event: { textEditor: vscode.TextEditor }) => void) => vscode.Disposable;
+            };
+
+            const disposable = windowWithVisibleRangeEvent.onDidChangeEditorVisibleRanges((event) => {
+                this.showCurrentVisibleRange(event.textEditor);
+            });
+            this.disposables.push(disposable);
+        }
+        // 尝试使用 editor.onDidChangeVisibleRanges 作为备选方案
+        else {
+            const editor = vscode.window.activeTextEditor;
+            if (editor && 'onDidChangeVisibleRanges' in editor) {
+                const editorWithVisibleRangeEvent = editor as vscode.TextEditor & {
+                    onDidChangeVisibleRanges: (listener: (event: { textEditor: vscode.TextEditor }) => void) => vscode.Disposable;
+                };
+
+                const disposable = editorWithVisibleRangeEvent.onDidChangeVisibleRanges((event) => {
+                    this.showCurrentVisibleRange(event.textEditor);
+                });
+                this.disposables.push(disposable);
+            }
+        }
+    }
+
+    /**
+     * 显示当前编辑器的可见范围信息
+     * @param editor 当前活动的文本编辑器
+     */
+    private showCurrentVisibleRange(editor: vscode.TextEditor): void {
+        try {
+            // 获取当前可见范围数组
+            const visibleRanges = editor.visibleRanges;
+            
+            // 计算总可见行数
+            const totalVisibleLines = visibleRanges.reduce((sum, range) => {
+                return sum + (range.end.line - range.start.line + 1);
+            }, 0);
+            
+            // 如果有可见范围
+            if (visibleRanges.length > 0) {
+                // 获取第一个可见范围
+                const firstRange = visibleRanges[0];
+                const startLine = firstRange.start.line;
+                const endLine = firstRange.end.line;
+                
+                // 显示可见范围信息
+                vscode.window.showInformationMessage(
+                    `当前可见范围: 从第 ${startLine + 1} 行到第 ${endLine + 1} 行，共 ${totalVisibleLines} 行`
+                );
+                
+                // 在控制台输出详细信息
+                console.log('当前可见范围:', {
+                    file: editor.document.fileName,
+                    ranges: visibleRanges.map((range, index) => ({
+                        index,
+                        start: {
+                            line: range.start.line,
+                            character: range.start.character
+                        },
+                        end: {
+                            line: range.end.line,
+                            character: range.end.character
+                        }
+                    })),
+                    totalVisibleLines
+                });
+            }
+        } catch (error) {
+            console.error('显示可见范围信息时出错:', error);
+            vscode.window.showErrorMessage('显示可见范围信息时出错');
+        }
+    }
+
+    /**
+     * 释放所有资源
+     */
+    private dispose(): void {
+        vscode.Disposable.from(...this.disposables).dispose();
+        this.disposables = [];
+    }
+}
+
+export function activateVisibleRangeDemo(context: vscode.ExtensionContext) {
+    // 注册命令，用于启动可见范围监听
+    const disposable = vscode.commands.registerCommand('vscode-plugin.visibleRangeDemo', () => {
+        const listener = new VisibleRangeListener();
+        listener.start(context);
     });
 
     // 注册命令到 context
     context.subscriptions.push(disposable);
-}
-
-/**
- * 显示当前编辑器的可见范围信息
- * @param editor 当前活动的文本编辑器
- */
-function showCurrentVisibleRange(editor: vscode.TextEditor) {
-    // 获取当前可见范围数组
-    const visibleRanges = editor.visibleRanges;
-    
-    // 计算总可见行数
-    let totalVisibleLines = 0;
-    visibleRanges.forEach(range => {
-        totalVisibleLines += range.end.line - range.start.line + 1;
-    });
-    
-    // 如果有可见范围
-    if (visibleRanges.length > 0) {
-        // 获取第一个可见范围
-        const firstRange = visibleRanges[0];
-        const startLine = firstRange.start.line;
-        const endLine = firstRange.end.line;
-        
-        // 显示可见范围信息
-        vscode.window.showInformationMessage(
-            `当前可见范围: 从第 ${startLine + 1} 行到第 ${endLine + 1} 行，共 ${totalVisibleLines} 行`
-        );
-        
-        // 在控制台输出详细信息
-        console.log('当前可见范围:', {
-            ranges: visibleRanges.map((range, index) => ({
-                index,
-                start: {
-                    line: range.start.line,
-                    character: range.start.character
-                },
-                end: {
-                    line: range.end.line,
-                    character: range.end.character
-                }
-            })),
-            totalVisibleLines
-        });
-    }
 }
 
