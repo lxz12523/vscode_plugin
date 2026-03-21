@@ -77,9 +77,7 @@ class VisibleRangeListener {
             const editor = vscode.window.activeTextEditor;
             if (editor && 'onDidChangeVisibleRanges' in editor) {
                 const disposable = (editor as any).onDidChangeVisibleRanges((event: any) => {
-                    if (event && event.textEditor) {
-                        this.showCurrentVisibleRange(event.textEditor);
-                    }
+                    this.showCurrentVisibleRange(event.textEditor);
                 });
                 this.disposables.push(disposable);
             }
