@@ -65,12 +65,7 @@ class VisibleRangeListener {
     private setupVisibleRangeChangeListener(): void {
         // 使用 vscode.window.onDidChangeTextEditorVisibleRanges 监听编辑器可见范围变化
         if ('onDidChangeTextEditorVisibleRanges' in vscode.window) {
-            // 类型安全的类型断言
-            type WindowWithVisibleRangeEvent = typeof vscode.window & {
-                onDidChangeTextEditorVisibleRanges: (listener: (event: { textEditor: vscode.TextEditor; visibleRanges: vscode.Range[] }) => void) => vscode.Disposable;
-            };
-
-            const disposable = (vscode.window as WindowWithVisibleRangeEvent).onDidChangeTextEditorVisibleRanges((event) => {
+            const disposable = vscode.window.onDidChangeTextEditorVisibleRanges((event) => {
                 if (event && event.textEditor) {
                     this.showCurrentVisibleRange(event.textEditor);
                 }
@@ -81,12 +76,7 @@ class VisibleRangeListener {
         else {
             const editor = vscode.window.activeTextEditor;
             if (editor && 'onDidChangeVisibleRanges' in editor) {
-                // 类型安全的类型断言
-                type EditorWithVisibleRangeEvent = vscode.TextEditor & {
-                    onDidChangeVisibleRanges: (listener: (event: { textEditor: vscode.TextEditor }) => void) => vscode.Disposable;
-                };
-
-                const disposable = (editor as EditorWithVisibleRangeEvent).onDidChangeVisibleRanges((event) => {
+                const disposable = (editor as any).onDidChangeVisibleRanges((event: any) => {
                     if (event && event.textEditor) {
                         this.showCurrentVisibleRange(event.textEditor);
                     }
