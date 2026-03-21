@@ -65,9 +65,7 @@ class VisibleRangeListener {
     private setupVisibleRangeChangeListener(): void {
         // 使用 vscode.window.onDidChangeTextEditorVisibleRanges 监听编辑器可见范围变化
         const disposable = vscode.window.onDidChangeTextEditorVisibleRanges((event) => {
-            if (event && event.textEditor) {
-                this.showCurrentVisibleRange(event.textEditor);
-            }
+            this.showCurrentVisibleRange(event.textEditor);
         });
         this.disposables.push(disposable);
     }
